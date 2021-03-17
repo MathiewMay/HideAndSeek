@@ -3,6 +3,7 @@ HideAndSeek is a simple Minecraft game mode with two teams, hiders and seekers, 
 
 Known Bug
 - Sometimes when a hider does not select a block before the h_countdown is over it won't actually select one for them.
+- With the support of multiple Maps, sometimes players get mixed between the waiting room of the new map and old map at the end of a game.
 
 Todo
 - Invisible system using ProtocolLib
