@@ -36,9 +36,9 @@ public final class HideAndSeek extends JavaPlugin {
 
                 /* WAITING FOR PLAYERS */
                 if(game.getState().equals(State.W_PLAYERS)){
-                    if(Bukkit.getOnlinePlayers().size() < GameInfo.min_players){
+                    if(Bukkit.getOnlinePlayers().size() < GameSettings.min_players){
                         HideAndSeek.notify("Waiting for more players...");
-                    }else if(Bukkit.getOnlinePlayers().size() >= GameInfo.min_players){
+                    }else if(Bukkit.getOnlinePlayers().size() >= GameSettings.min_players){
                         HideAndSeek.notify("Game starting soon...");
                         game.setState(State.S_COUNTDOWN);
                     }
@@ -48,7 +48,7 @@ public final class HideAndSeek extends JavaPlugin {
                 if(game.getState().equals(State.S_COUNTDOWN)){
                     int countdown = game.getStartCountdown();
                     if(countdown > 0){
-                        if(Bukkit.getOnlinePlayers().size() >= GameInfo.min_players){
+                        if(Bukkit.getOnlinePlayers().size() >= GameSettings.min_players){
                             HideAndSeek.notify("Game starting in "+countdown);
                             game.setStartCountdown(countdown-1);
                         }else{
@@ -119,7 +119,7 @@ public final class HideAndSeek extends JavaPlugin {
                 /* END GAME */
                 if(game.getState().equals(State.ENDED)){
                     for(Player player : Bukkit.getOnlinePlayers()){
-                        player.teleport(GameInfo.waiting_room);
+                        player.teleport(game.getMap().getWaitingRoom());
                         player.getInventory().clear();
                     }
                     game.resetGame();
@@ -140,17 +140,14 @@ public final class HideAndSeek extends JavaPlugin {
 
     public void resetPlayers(){
         for(Player player : Bukkit.getOnlinePlayers()){
-            preparePlayer(this, player);
+            preparePlayer(player);
         }
     }
 
-    public static void preparePlayer(HideAndSeek plugin,Player player){
-        player.teleport(GameInfo.waiting_room);
+    public void preparePlayer(Player player){
+        player.teleport(game.getMap().getWaitingRoom());
         player.setGameMode(GameMode.ADVENTURE);
-        player.getInventory().clear();;
+        player.getInventory().clear();
         player.setInvisible(false);
-        for(Player target : Bukkit.getOnlinePlayers()){
-            player.showPlayer(plugin, target);
-        }
     }
 }

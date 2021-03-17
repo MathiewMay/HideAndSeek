@@ -1,14 +1,15 @@
 package ca.mathiewmay.hideandseek.game;
 
-import ca.mathiewmay.hideandseek.GameInfo;
+import ca.mathiewmay.hideandseek.GameSettings;
 import ca.mathiewmay.hideandseek.HideAndSeek;
+import ca.mathiewmay.hideandseek.maps.Aquarius;
+import ca.mathiewmay.hideandseek.maps.Map;
+import ca.mathiewmay.hideandseek.maps.ValdinCity;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 
 public class HideAndSeekGame {
 
@@ -16,6 +17,9 @@ public class HideAndSeekGame {
     int start_countdown;
     int h_countdown;
     int game_countdown;
+
+    List<Map> map_pool = new ArrayList<>();
+    Map map;
 
     ArrayList<Player> seekers = new ArrayList<>();
     ArrayList<Player> hiders = new ArrayList<>();
@@ -27,11 +31,13 @@ public class HideAndSeekGame {
 
     HideAndSeek plugin;
     public HideAndSeekGame(HideAndSeek plugin, State game_state){
+        map_pool.add(new Aquarius()); map_pool.add(new ValdinCity());
+        chooseMap();
         this.plugin = plugin;
         this.game_state = game_state;
-        this.start_countdown = GameInfo.start_countdown;
-        this.h_countdown = GameInfo.h_countdown;
-        this.game_countdown = GameInfo.game_countdown;
+        this.start_countdown = GameSettings.start_countdown;
+        this.h_countdown = GameSettings.h_countdown;
+        this.game_countdown = GameSettings.game_countdown;
     }
 
     public State getState(){
@@ -61,9 +67,8 @@ public class HideAndSeekGame {
     }
 
     public void resetStartCountdown(){
-        this.start_countdown = GameInfo.start_countdown;
+        this.start_countdown = GameSettings.start_countdown;
     }
-
 
     public ArrayList<Player> getSeekers(){
         return seekers;
@@ -90,19 +95,21 @@ public class HideAndSeekGame {
         return hiders_ticket;
     }
 
+    public Map getMap() { return  map; }
+
     public void startPlayers(){
         for(Player player : hiders){
-            player.teleport(GameInfo.start);
+            player.teleport(map.getStart());
             hidersTempLoadout(player);
         }
         for(Player player : seekers){
-            player.teleport(GameInfo.seekers_waiting_room);
+            player.teleport(map.getSeekersRoom());
         }
     }
 
     public void hidersTempLoadout(Player player){
         player.getInventory().clear();
-        for(Material material : GameInfo.block_pool()){
+        for(Material material : map.getBlockPool().get()){
             player.getInventory().addItem(new ItemStack(material));
         }
     }
@@ -113,7 +120,7 @@ public class HideAndSeekGame {
 
     public void deploySeekers(){
         for(Player player : seekers){
-            player.teleport(GameInfo.start);
+            player.teleport(map.getStart());
             player.getInventory().clear();
             player.getInventory().addItem(new ItemStack(Material.STONE_SWORD));
         }
@@ -138,17 +145,15 @@ public class HideAndSeekGame {
         }
         for (Player player : getSeekers()){
             plugin.notify(player, seekers);
-            for(Player h : getHiders()){
-                player.hidePlayer(plugin, h);
-            }
         }
     }
 
     public void resetGame(){
+        chooseMap();
         this.game_state = State.W_PLAYERS;
-        this.start_countdown = GameInfo.start_countdown;
-        this.h_countdown = GameInfo.h_countdown;
-        this.game_countdown = GameInfo.game_countdown;
+        this.start_countdown = GameSettings.start_countdown;
+        this.h_countdown = GameSettings.h_countdown;
+        this.game_countdown = GameSettings.game_countdown;
         seekers.clear();
         hiders.clear();
         this.seekers_ticket = 0;
@@ -163,7 +168,7 @@ public class HideAndSeekGame {
         if(!hiders_block.containsKey(player)){
             Material mat = player.getInventory().getItemInMainHand().getType();
             if(mat.equals(Material.AIR)){
-                mat = GameInfo.block_pool().get(new Random().nextInt(GameInfo.block_pool().size()));
+                mat = map.getBlockPool().get().get(new Random().nextInt(map.getBlockPool().get().size()));
             }
             hiders_block.put(player, mat);
             player.sendMessage("You are now hiding as a "+mat.toString().replace("_", " ").toLowerCase());
@@ -171,4 +176,15 @@ public class HideAndSeekGame {
         }
     }
 
+    public void chooseMap(){
+        if(map == null){
+            map = map_pool.get(new Random().nextInt(map_pool.size()));
+        }else{
+            Map new_map = map_pool.get(new Random().nextInt(map_pool.size()));
+            if(map.getName() == new_map.getName())
+                chooseMap();
+            else
+                map = map_pool.get(new Random().nextInt(map_pool.size()));
+        }
+    }
 }

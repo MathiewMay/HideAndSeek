@@ -1,6 +1,5 @@
 package ca.mathiewmay.hideandseek.listeners;
 
-import ca.mathiewmay.hideandseek.GameInfo;
 import ca.mathiewmay.hideandseek.HideAndSeek;
 import ca.mathiewmay.hideandseek.game.State;
 import org.bukkit.Material;
@@ -15,6 +14,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -28,7 +28,7 @@ public class MainListeners implements Listener {
     @EventHandler
     public void playerJoin(PlayerJoinEvent event){
         Player player = event.getPlayer();
-        HideAndSeek.preparePlayer(plugin, player);
+        plugin.preparePlayer(player);
     }
 
     @EventHandler
@@ -41,9 +41,14 @@ public class MainListeners implements Listener {
             @Override
             public void run() {
                 player.spigot().respawn();
-                //TODO hider to seeker respawn logic
             }
         }.runTaskLater(plugin, 20L);
+    }
+
+    @EventHandler
+    public void playerRespawn(PlayerRespawnEvent event){
+        // TODO hider to seeker respawn logic
+        event.setRespawnLocation(plugin.game.getMap().getWaitingRoom());
     }
 
     @EventHandler
