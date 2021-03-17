@@ -8,3 +8,4 @@ Todo
 - Invisible system using ProtocolLib
 - Make an entity block of the hiders selected block follow them until they are in "solidified" state, 
   this state should only be broken when the player is outside of the block he was soldified on.
+- Make dead hiders go in the seekers team. check // TODO in MainListeners.java
