@@ -7,7 +7,7 @@ Known Bug
 
 Todo
 - Invisible system using ProtocolLib
-- ~~Make an entity block of the hiders selected block follow them until they are in "solidified" state, ~~
+- ~~Make an entity block of the hiders selected block follow them until they are in "solidified" state,~~
   ~~this state should only be broken when the player is outside of the block he was soldified on, or when a seeker attacks the solidified block.~~
 - Make it so that when a seeker attacks a hider's follower it damages the hider instead.
 - Make it so that when a seeker attacks a hider's solid block it damages the hider and remove them from the solidifed state.
