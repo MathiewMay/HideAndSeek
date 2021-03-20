@@ -1,8 +1,11 @@
 package ca.mathiewmay.hideandseek.listeners;
 
 import ca.mathiewmay.hideandseek.HideAndSeek;
+import ca.mathiewmay.hideandseek.game.HiderPlayer;
 import ca.mathiewmay.hideandseek.game.State;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,9 +17,11 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
 public class MainListeners implements Listener {
 
@@ -34,6 +39,7 @@ public class MainListeners implements Listener {
     @EventHandler
     public void playerDie(PlayerDeathEvent event){
         Player player = event.getEntity();
+        player.getInventory().clear();
         if(plugin.game.isPlayerOfGame(player)){
             plugin.game.eliminatePlayer(player);
         }
@@ -80,24 +86,61 @@ public class MainListeners implements Listener {
     public void selectBlock(PlayerInteractEvent event){
         Player player = event.getPlayer();
         if(event.getHand() != null && event.getHand().equals(EquipmentSlot.HAND) && !player.getInventory().getItemInMainHand().getType().equals(Material.AIR)){
-            if(event.getAction().equals(Action.RIGHT_CLICK_BLOCK) || event.getAction().equals(Action.RIGHT_CLICK_AIR)){
+            if(event.getAction().equals(Action.RIGHT_CLICK_BLOCK) || event.getAction().equals(Action.RIGHT_CLICK_AIR) && plugin.game.getState().equals(State.H_COUNTDOWN)){
                 Material material = player.getInventory().getItemInMainHand().getType();
-                if(plugin.game.getHiders().contains(player) && plugin.game.getState().equals(State.H_COUNTDOWN)){
-                    plugin.game.setBlockHider(player, material);
-                    player.sendMessage("You are now hiding as a "+material.toString().replace("_", " ").toLowerCase());
-                    plugin.game.hidersLoadout(player);
-                }
+                if(plugin.game.isPlayerHider(player) && !plugin.game.getPlayerHiderFromPlayer(player).hasFollower())
+                    plugin.game.hiderSelectBlock(plugin.game.getPlayerHiderFromPlayer(player), material);
+                if(material.equals(Material.BEDROCK) && plugin.game.isPlayerHider(player) && plugin.game.getPlayerHiderFromPlayer(player).hasFollower())
+                    plugin.game.getPlayerHiderFromPlayer(player).solidify();
+
             }
         }
     }
 
     @EventHandler
+    public void unSolidifyHider(PlayerMoveEvent event){
+        Player player = event.getPlayer();
+        if(plugin.game.isPlayerHider(player)){
+            HiderPlayer hider = plugin.game.getPlayerHiderFromPlayer(player);
+            if(hider.isSolidified()){
+                double solidX = hider.getSolidifiedLocation().getX();
+                double solidY = hider.getSolidifiedLocation().getY();
+                double solidZ = hider.getSolidifiedLocation().getZ();
+                double currentX = Math.floor(player.getLocation().getX());
+                double currentY = Math.floor(player.getLocation().getY());
+                double currentZ = Math.floor(player.getLocation().getZ());
+                Vector solidVector = new Vector(solidX,solidY,solidZ);
+                Vector currentVector = new Vector(currentX,currentY,currentZ);
+                if(!solidVector.equals(currentVector))
+                    hider.unSolidify();
+            }
+        }
+    }
+
+    @EventHandler
+    public void seekerAttackFollower(EntityDamageByEntityEvent event){
+        Entity victim = event.getEntity();
+        if(victim instanceof FallingBlock){
+            for(HiderPlayer hider : plugin.game.getHiders()){
+                if(!hider.isSolidified() && hider.hasFollower()){
+                    if(victim == hider.getFollower()){
+                        hider.getPlayer().damage(event.getDamage());
+                    }
+                }
+            }
+        }
+        // TODO Check if a seeker is attacking a falling block that is owned by a player (follower)
+    }
+
+    @EventHandler
     public void onBreak(BlockBreakEvent event){
-        event.setCancelled(true);
+        if(!event.getPlayer().isOp())
+            event.setCancelled(true);
     }
 
     @EventHandler
     public void onPlace(BlockPlaceEvent event){
-        event.setCancelled(true);
+        if(!event.getPlayer().isOp())
+            event.setCancelled(true);
     }
 }

@@ -5,109 +5,125 @@ import ca.mathiewmay.hideandseek.HideAndSeek;
 import ca.mathiewmay.hideandseek.maps.Aquarius;
 import ca.mathiewmay.hideandseek.maps.Map;
 import ca.mathiewmay.hideandseek.maps.ValdinCity;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.*;
 
 public class HideAndSeekGame {
 
-    State game_state;
-    int start_countdown;
-    int h_countdown;
-    int game_countdown;
+    State gameState;
+    int startCountdown;
+    int hCountdown;
+    int gameCountdown;
 
-    List<Map> map_pool = new ArrayList<>();
+    List<Map> mapPool = new ArrayList<>();
     Map map;
 
     ArrayList<Player> seekers = new ArrayList<>();
-    ArrayList<Player> hiders = new ArrayList<>();
+    ArrayList<HiderPlayer> hiders = new ArrayList<>();
 
-    HashMap<Player, Material> hiders_block = new HashMap<>();
-
-    int seekers_ticket = 0;
-    int hiders_ticket = 0;
+    int seekersTicket = 0;
+    int hidersTicket = 0;
 
     HideAndSeek plugin;
-    public HideAndSeekGame(HideAndSeek plugin, State game_state){
-        map_pool.add(new Aquarius()); map_pool.add(new ValdinCity());
+    public HideAndSeekGame(HideAndSeek plugin, State gameState){
+        mapPool.add(new Aquarius()); mapPool.add(new ValdinCity());
         chooseMap();
         this.plugin = plugin;
-        this.game_state = game_state;
-        this.start_countdown = GameSettings.start_countdown;
-        this.h_countdown = GameSettings.h_countdown;
-        this.game_countdown = GameSettings.game_countdown;
+        this.gameState = gameState;
+        this.startCountdown = GameSettings.startCountdown;
+        this.hCountdown = GameSettings.hCountdown;
+        this.gameCountdown = GameSettings.gameCountdown;
     }
 
     public State getState(){
-        return game_state;
+        return gameState;
     }
-    public void setState(State new_state){
-        this.game_state = new_state;
+    public void setState(State newState){
+        this.gameState = newState;
     }
 
     public int getStartCountdown(){
-        return start_countdown;
+        return startCountdown;
     }
     public int getHCountdown(){
-        return h_countdown;
+        return hCountdown;
     }
     public int getGameCountdown(){
-        return game_countdown;
+        return gameCountdown;
     }
-    public void setStartCountdown(int new_value){
-        this.start_countdown = new_value;
+    public void setStartCountdown(int newValue){
+        this.startCountdown = newValue;
     }
-    public void setHCountdown(int new_value){
-        this.h_countdown = new_value;
+    public void setHCountdown(int newValue){
+        this.hCountdown = newValue;
     }
-    public void setGameCountdown(int new_value){
-        this.game_countdown = new_value;
+    public void setGameCountdown(int newValue){
+        this.gameCountdown = newValue;
     }
 
     public void resetStartCountdown(){
-        this.start_countdown = GameSettings.start_countdown;
+        this.startCountdown = GameSettings.startCountdown;
     }
 
     public ArrayList<Player> getSeekers(){
         return seekers;
     }
-    public ArrayList<Player> getHiders(){
+    public ArrayList<HiderPlayer> getHiders(){
         return hiders;
     }
     public void addSeeker(Player player){
         seekers.add(player);
-        seekers_ticket++;
+        seekersTicket++;
     }
-    public void addHider(Player player){
-        hiders.add(player);
-        hiders_ticket++;
+    public void addHider(HiderPlayer hider){
+        hiders.add(hider);
+        hidersTicket++;
     }
-    public void removeSeeker(Player player){
-        seekers.remove(player);
+    public void removeHider(HiderPlayer hider){
+        hiders.remove(hider);
     }
-    public void removeHider(Player player){
-        hiders.remove(player);
+    public boolean isPlayerHider(Player player){
+        for(HiderPlayer hider : hiders){
+            if(hider.getPlayer() == player)
+                return true;
+        }
+        return false;
+    }
+    public HiderPlayer getPlayerHiderFromPlayer(Player player){
+        if(isPlayerHider(player)){
+            for(HiderPlayer hider : hiders){
+                if(hider.getPlayer() == player){
+                    return hider;
+                }
+            }
+        }
+        return null;
     }
 
     public int getHidersTicket(){
-        return hiders_ticket;
+        return hidersTicket;
     }
 
     public Map getMap() { return  map; }
 
     public void startPlayers(){
-        for(Player player : hiders){
-            player.teleport(map.getStart());
-            hidersTempLoadout(player);
+        for(HiderPlayer hider : hiders){
+            hider.getPlayer().teleport(map.getStart());
+            hidersSelectionLoadout(hider.getPlayer());
         }
         for(Player player : seekers){
             player.teleport(map.getSeekersRoom());
         }
     }
 
-    public void hidersTempLoadout(Player player){
+    public void hidersSelectionLoadout(Player player){
         player.getInventory().clear();
         for(Material material : map.getBlockPool().get()){
             player.getInventory().addItem(new ItemStack(material));
@@ -116,10 +132,22 @@ public class HideAndSeekGame {
 
     public void hidersLoadout(Player player){
         player.getInventory().clear();
+        player.getInventory().addItem(makeSimpleItem(Material.BEDROCK, "Solidify"));
+        player.getInventory().addItem(makeSimpleItem(Material.REDSTONE_TORCH, "Rotate"));
+    }
+
+    public void hiderSelectBlock(HiderPlayer hider, Material material){
+        if(!hider.hasFollower())
+            hider.makeFollower();
+        hider.setFollowerMaterial(material);
+        hider.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 2147483647, 2));
+        hider.getPlayer().sendMessage("You are now hiding as a "+material.toString().replace("_", " ").toLowerCase());
+        hidersLoadout(hider.getPlayer());
     }
 
     public void deploySeekers(){
         for(Player player : seekers){
+            player.setGameMode(GameMode.SURVIVAL);
             player.teleport(map.getStart());
             player.getInventory().clear();
             player.getInventory().addItem(new ItemStack(Material.STONE_SWORD));
@@ -127,21 +155,27 @@ public class HideAndSeekGame {
     }
 
     public boolean isPlayerOfGame(Player player){
-        return getSeekers().contains(player) || getHiders().contains(player);
+        boolean playerHider = false;
+        for(HiderPlayer hider : hiders){
+            if (hider.getPlayer() == player) {
+                playerHider = true;
+                break;
+            }
+        }
+        return getSeekers().contains(player) || playerHider;
     }
 
     public void eliminatePlayer(Player player){
-        if(getHiders().contains(player)){
-            removeHider(player);
+        if(isPlayerHider(player)) {
+            removeHider(getPlayerHiderFromPlayer(player));
             addSeeker(player);
-            hiders_block.remove(player);
-            hiders_ticket--;
+            hidersTicket--;
         }
     }
 
     public void notifyTeams(String hiders, String seekers) {
-        for(Player player : getHiders()){
-            plugin.notify(player, hiders);
+        for(HiderPlayer hider : getHiders()){
+            plugin.notify(hider.getPlayer(), hiders);
         }
         for (Player player : getSeekers()){
             plugin.notify(player, seekers);
@@ -150,41 +184,44 @@ public class HideAndSeekGame {
 
     public void resetGame(){
         chooseMap();
-        this.game_state = State.W_PLAYERS;
-        this.start_countdown = GameSettings.start_countdown;
-        this.h_countdown = GameSettings.h_countdown;
-        this.game_countdown = GameSettings.game_countdown;
+        this.gameState = State.W_PLAYERS;
+        this.startCountdown = GameSettings.startCountdown;
+        this.hCountdown = GameSettings.hCountdown;
+        this.gameCountdown = GameSettings.gameCountdown;
         seekers.clear();
         hiders.clear();
-        this.seekers_ticket = 0;
-        this.hiders_ticket = 0;
+        this.seekersTicket = 0;
+        this.hidersTicket = 0;
     }
 
-    public void setBlockHider(Player player, Material material){
-        hiders_block.put(player, material);
-    }
-
-    public void autoRegisterHider(Player player){
-        if(!hiders_block.containsKey(player)){
-            Material mat = player.getInventory().getItemInMainHand().getType();
-            if(mat.equals(Material.AIR)){
-                mat = map.getBlockPool().get().get(new Random().nextInt(map.getBlockPool().get().size()));
+    public void autoRegisterHider(HiderPlayer hider){
+        if(!hider.hasFollower()){
+            Material material = hider.getPlayer().getInventory().getItemInMainHand().getType();
+            if(material.equals(Material.AIR)){
+                material = map.getBlockPool().get().get(new Random().nextInt(map.getBlockPool().get().size()));
             }
-            hiders_block.put(player, mat);
-            player.sendMessage("You are now hiding as a "+mat.toString().replace("_", " ").toLowerCase());
-            plugin.game.hidersLoadout(player);
+            hiderSelectBlock(hider, material);
         }
     }
 
     public void chooseMap(){
         if(map == null){
-            map = map_pool.get(new Random().nextInt(map_pool.size()));
+            map = mapPool.get(new Random().nextInt(mapPool.size()));
         }else{
-            Map new_map = map_pool.get(new Random().nextInt(map_pool.size()));
-            if(map.getName() == new_map.getName())
+            Map new_map = mapPool.get(new Random().nextInt(mapPool.size()));
+            if(new_map.equals(map))
                 chooseMap();
             else
-                map = map_pool.get(new Random().nextInt(map_pool.size()));
+                map = mapPool.get(new Random().nextInt(mapPool.size()));
         }
+    }
+
+    private ItemStack makeSimpleItem(Material material, String displayName){
+        ItemStack itemStack = new ItemStack(material);
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        assert itemMeta != null;
+        itemMeta.setDisplayName(displayName);
+        itemStack.setItemMeta(itemMeta);
+        return itemStack;
     }
 }

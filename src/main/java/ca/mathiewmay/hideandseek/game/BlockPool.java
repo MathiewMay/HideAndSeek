@@ -4,7 +4,6 @@ import org.bukkit.Material;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class BlockPool {
 

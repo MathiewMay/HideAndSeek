@@ -1,6 +1,7 @@
 package ca.mathiewmay.hideandseek;
 
 import ca.mathiewmay.hideandseek.game.HideAndSeekGame;
+import ca.mathiewmay.hideandseek.game.HiderPlayer;
 import ca.mathiewmay.hideandseek.game.State;
 import ca.mathiewmay.hideandseek.listeners.MainListeners;
 import net.md_5.bungee.api.ChatMessageType;
@@ -9,14 +10,17 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 public final class HideAndSeek extends JavaPlugin {
 
     public HideAndSeekGame game = new HideAndSeekGame(this, State.W_PLAYERS);
+    private final HideAndSeek plugin = this;
 
     @Override
     public void onEnable() {
@@ -27,18 +31,17 @@ public final class HideAndSeek extends JavaPlugin {
 
     public void startNewGame(){
         game.resetGame();
-        game_clock();
+        gameClock();
     }
 
-    private void game_clock(){
+    private void gameClock(){
         new BukkitRunnable() {
             public void run(){
-
                 /* WAITING FOR PLAYERS */
                 if(game.getState().equals(State.W_PLAYERS)){
-                    if(Bukkit.getOnlinePlayers().size() < GameSettings.min_players){
+                    if(Bukkit.getOnlinePlayers().size() < GameSettings.minPlayers){
                         HideAndSeek.notify("Waiting for more players...");
-                    }else if(Bukkit.getOnlinePlayers().size() >= GameSettings.min_players){
+                    }else if(Bukkit.getOnlinePlayers().size() >= GameSettings.minPlayers){
                         HideAndSeek.notify("Game starting soon...");
                         game.setState(State.S_COUNTDOWN);
                     }
@@ -48,7 +51,7 @@ public final class HideAndSeek extends JavaPlugin {
                 if(game.getState().equals(State.S_COUNTDOWN)){
                     int countdown = game.getStartCountdown();
                     if(countdown > 0){
-                        if(Bukkit.getOnlinePlayers().size() >= GameSettings.min_players){
+                        if(Bukkit.getOnlinePlayers().size() >= GameSettings.minPlayers){
                             HideAndSeek.notify("Game starting in "+countdown);
                             game.setStartCountdown(countdown-1);
                         }else{
@@ -63,17 +66,17 @@ public final class HideAndSeek extends JavaPlugin {
 
                 /* PRE GAME */
                 if(game.getState().equals(State.PRE_GAME)){
-                    int seekers_amount = 1;
-                    if(Bukkit.getOnlinePlayers().size() >= 15) seekers_amount = 2;
-                    ArrayList<Player> player_pool = new ArrayList<>(Bukkit.getOnlinePlayers());
-                    while(seekers_amount > 0){
-                        Player player = player_pool.get(new Random().nextInt(player_pool.size()));
+                    int seekersAmount = 1;
+                    if(Bukkit.getOnlinePlayers().size() >= 15) seekersAmount = 2;
+                    ArrayList<Player> playerPool = new ArrayList<>(Bukkit.getOnlinePlayers());
+                    while(seekersAmount > 0){
+                        Player player = playerPool.get(new Random().nextInt(playerPool.size()));
                         game.addSeeker(player);
-                        player_pool.remove(player);
-                        seekers_amount--;
+                        playerPool.remove(player);
+                        seekersAmount--;
                     }
-                    for(Player player : player_pool)
-                        game.addHider(player);
+                    for(Player player : playerPool)
+                        game.addHider(new HiderPlayer(plugin, game, player));
                     game.startPlayers();
                     game.setState(State.H_COUNTDOWN);
                 }
@@ -85,8 +88,8 @@ public final class HideAndSeek extends JavaPlugin {
                         game.notifyTeams("Choose your block "+countdown, "Deploying in "+countdown+" seconds");
                         game.setHCountdown(countdown-1);
                     }else{
-                        for(Player player : game.getHiders())
-                            game.autoRegisterHider(player);
+                        for(HiderPlayer hider : game.getHiders())
+                            game.autoRegisterHider(hider);
                         game.deploySeekers();
                         game.setState(State.PLAYING);
                     }
@@ -96,7 +99,7 @@ public final class HideAndSeek extends JavaPlugin {
                 if(game.getState().equals(State.PLAYING)){
                     int countdown = game.getGameCountdown();
                     if(countdown > 0){
-                        HideAndSeek.notify("Time left "+countdown+" H: "+game.getHidersTicket());
+                        HideAndSeek.notify("Time left "+TimeUnit.SECONDS.toMinutes(countdown));
                         if(game.getHidersTicket() == 0){
                             game.setState(State.ENDING);
                         }
@@ -118,11 +121,8 @@ public final class HideAndSeek extends JavaPlugin {
 
                 /* END GAME */
                 if(game.getState().equals(State.ENDED)){
-                    for(Player player : Bukkit.getOnlinePlayers()){
-                        player.teleport(game.getMap().getWaitingRoom());
-                        player.getInventory().clear();
-                    }
                     game.resetGame();
+                    resetPlayers();
                 }
             }
         }.runTaskTimer(this, 20, 20);
@@ -147,7 +147,11 @@ public final class HideAndSeek extends JavaPlugin {
     public void preparePlayer(Player player){
         player.teleport(game.getMap().getWaitingRoom());
         player.setGameMode(GameMode.ADVENTURE);
-        player.getInventory().clear();
         player.setInvisible(false);
+        player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        player.getInventory().clear();
+        for(Player other : Bukkit.getOnlinePlayers()){
+            other.showPlayer(this, player);
+        }
     }
 }
