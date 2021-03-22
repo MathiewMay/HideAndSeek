@@ -1,14 +1,13 @@
 # HideAndSeek
-HideAndSeek is a simple Minecraft game mode with two teams, hiders and seekers, hiders need to hide from the seekers and when a seeker find a hider the hider joins the seeker team.
+HideAndSeek is a simple Minecraft gamemode with two teams, hiders and seekers, hiders need to hide from the seekers, when a hider is eliminated they join the seekers team.
+Hiders use Minecraft blocks to hide, they can either hide as a block entity, or as a solid block, when they are in a solid block state they can't move or they will be put back in the block entity state.
 
 Known Bug
-- Sometimes when a hider does not select a block before the hCountdown is over it won't actually select one for them.
-- With the support of multiple Maps, sometimes players get mixed between the waiting room of the new map and old map at the end of a game.
+- Sometimes when a hider does not select a block before the hCountdown is over it won't actually select one for them. (not sure if this bug is fixed or not)
+- ~~With the support of multiple Maps, sometimes players get mixed between the waiting room of the new map and old map at the end of a game.~~
 
 Todo
-- Invisible system using ProtocolLib
-- ~~Make an entity block of the hiders selected block follow them until they are in "solidified" state,~~
-  ~~this state should only be broken when the player is outside of the block he was soldified on, or when a seeker attacks the solidified block.~~
-- Make it so that when a seeker attacks a hider's follower it damages the hider instead.
-- Make it so that when a seeker attacks a hider's solid block it damages the hider and remove them from the solidifed state.
-- Make dead hiders go in the seekers team. check // TODO in MainListeners.java
+- (1) Make it so that seekers can attack solidified hiders.
+- (2) Make dead hiders go in the seekers team.
+- (3) Make it so that seekers can attack a hider's follower.
+- (4) Invisible system using ProtocolLib
